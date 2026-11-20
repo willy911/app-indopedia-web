@@ -83,6 +83,7 @@ class MeController extends Controller
                     (int) $locale->max_decimal_digits
                 ),
                 'joined_at'        => date('Y-m-d', strtotime($user->created_at)),
+                'kurs_rate'        => (float) ($locale->usd_rate_buy > 0 ? $locale->usd_rate_buy : $locale->usd_rate),
             ],
         ], 200, [], JSON_PRETTY_PRINT);
     }

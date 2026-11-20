@@ -23,6 +23,12 @@ Route::post('deposits', [\App\Http\Controllers\API\DepositController::class, 'li
 Route::post('deposits/create', [\App\Http\Controllers\API\DepositController::class, 'store'])->middleware('api');
 Route::post('orders', [\App\Http\Controllers\API\OrderListController::class, '__invoke'])->middleware('api');
 
+// --- Endpoint rating/ulasan layanan (kredensial api_key + secret_key) ---
+Route::post('reviews', [\App\Http\Controllers\API\ReviewController::class, 'store'])->middleware('api');
+Route::post('reviews/mine', [\App\Http\Controllers\API\ReviewController::class, 'mine'])->middleware('api');
+Route::post('reviews/eligible', [\App\Http\Controllers\API\ReviewController::class, 'eligible'])->middleware('api');
+Route::post('services/reviews', [\App\Http\Controllers\API\ReviewController::class, 'serviceReviews'])->middleware('api');
+
 // --- Endpoint aplikasi: signup, reset password, monitoring (PUBLIK, tanpa kredensial) ---
 // Semua route di bawah ini diakses SEBELUM user punya api_key/secret_key (atau tanpa
 // kredensial sama sekali untuk monitoring publik), jadi middleware

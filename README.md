@@ -16,8 +16,17 @@ Backend **full-API murni** (tanpa UI) untuk aplikasi mobile Indopedia SMM Panel.
 ### Autentikasi & akun
 | Endpoint | Keterangan |
 |---|---|
+| `POST /api/auth/signup` | Pendaftaran akun baru (publik). Body: `user.locale` (default `id`), `user.full_name`, `user.whatsapp`, `user.email`, `user.username`, `user.password` (+ opsional `user.password_confirmation`, `referral_code`). Respons 201 berisi `api_key` + `secret_key` (akun langsung siap pakai). Rate limit 5/menit per IP. |
 | `POST /api/auth/login` | Body: `username`, `password` → `data.api_key`, `data.secret_key`, profil ringkas. Rate limit 5 percobaan/5 menit per IP (429 bila kelebihan). |
+| `POST /api/auth/forgot-password` | Minta link reset password via email (publik). Body: `email`. Hanya email terverifikasi & akun aktif; 1 permintaan per 30 detik per IP (429 bila kelebihan). |
+| `POST /api/auth/reset-password` | Ubah password memakai token dari email (publik). Body: `token`, `new_password`. Token sekali pakai. |
 | `POST /api/me` | Body: `api_key`, `secret_key` → profil, saldo, diskon layanan, status. |
+
+> **Catatan reset password:** link pada email reset mengarah ke `APP_FRONTEND_URL`
+> (config `services.app.frontend_url`) + `/auth/reset-password?token=...` — form
+> reset ditampilkan oleh aplikasi/web utama, bukan oleh backend ini. `APP_FRONTEND_URL`
+> **wajib diisi di produksi** (mis. `https://indopedia.id`). Reset hanya berlaku
+> untuk **email terverifikasi** dan **akun berstatus aktif**.
 
 ### Katalog & order
 | Endpoint | Keterangan |
@@ -35,6 +44,12 @@ Backend **full-API murni** (tanpa UI) untuk aplikasi mobile Indopedia SMM Panel.
 | `POST /api/payment-methods` | Metode pembayaran aktif (fee, bonus, kode gateway). |
 | `POST /api/deposits` | Riwayat deposit, paginate. |
 | `POST /api/deposits/create` | Buat deposit (manual & 7 gateway); respons berisi `checkout_url`/`payment_information`. Saldo dikredit otomatis oleh callback. |
+
+### Monitoring (publik)
+| Endpoint | Keterangan |
+|---|---|
+| `POST /api/monitoring` | Order completed (publik, tanpa kredensial). Wajib `page` untuk paginate; filter `filter.service_id`, `filter.search`, urutan `order.column` (id/created_at/process_time) + `order.direction`, `length` (maks 50). |
+| `POST /api/monitoring/services` | Daftar layanan yang punya order completed + jumlahnya (publik, maks 100 layanan). |
 
 ### Reseller (V2)
 | Endpoint | Keterangan |

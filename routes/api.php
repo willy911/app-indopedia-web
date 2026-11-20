@@ -22,3 +22,13 @@ Route::post('payment-methods', [\App\Http\Controllers\API\PaymentMethodControlle
 Route::post('deposits', [\App\Http\Controllers\API\DepositController::class, 'list'])->middleware('api');
 Route::post('deposits/create', [\App\Http\Controllers\API\DepositController::class, 'store'])->middleware('api');
 Route::post('orders', [\App\Http\Controllers\API\OrderListController::class, '__invoke'])->middleware('api');
+
+// --- Endpoint aplikasi: signup, reset password, monitoring (PUBLIK, tanpa kredensial) ---
+// Semua route di bawah ini diakses SEBELUM user punya api_key/secret_key (atau tanpa
+// kredensial sama sekali untuk monitoring publik), jadi middleware
+// App\Http\Middleware\API (yang di-append ke seluruh grup api) dikecualikan per-route.
+Route::post('auth/signup', [\App\Http\Controllers\API\SignupController::class, '__invoke'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:5,1');
+Route::post('auth/forgot-password', [\App\Http\Controllers\API\PasswordResetController::class, 'forgot'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:3,1');
+Route::post('auth/reset-password', [\App\Http\Controllers\API\PasswordResetController::class, 'reset'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:5,1');
+Route::post('monitoring', [\App\Http\Controllers\API\MonitoringController::class, 'index'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');
+Route::post('monitoring/services', [\App\Http\Controllers\API\MonitoringController::class, 'services'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');

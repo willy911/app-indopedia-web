@@ -446,6 +446,14 @@ class DepositController extends Controller
             'content_params' => (object) ['deposit_id' => $insertDeposit->id],
         ]);
 
+        // Bocorkan QR dari log gateway (pola web: payment_gateway_api_log->data->...).
+        // Flazpay terbaru: data.qrContent (payload EMVCo) + data.qrcode_url (gambar PNG).
+        $gwData   = data_get($insertDeposit->payment_gateway_api_log, 'data');
+        $qrContent = data_get($gwData, 'qrContent')
+            ?: data_get($gwData, 'qr_string')
+            ?: data_get($gwData, 'qr_content');
+        $qrUrl     = data_get($gwData, 'qrcode_url') ?: data_get($gwData, 'qr_url');
+
         return response()->json([
             'status' => true,
             'data'   => [
@@ -456,6 +464,8 @@ class DepositController extends Controller
                 'payment_gateway_payment_token'  => $insertDeposit->payment_gateway_payment_token,
                 'checkout_url'                   => $insertDeposit->payment_gateway_checkout_url,
                 'payment_information'            => $insertDeposit->payment_information,
+                'qrcode_url'                     => $qrUrl,
+                'qr_content'                     => $qrContent,
                 'total_payment'                  => round((float) $insertDeposit->total_payment, 8),
                 'total_balance'                  => round((float) $insertDeposit->total_balance, 8),
                 'unique_code'                    => round((float) $insertDeposit->unique_code, 8),
@@ -528,6 +538,11 @@ class DepositController extends Controller
                 'payment_gateway_payment_token'  => $deposit->payment_gateway_payment_token,
                 'checkout_url'                   => $deposit->payment_gateway_checkout_url,
                 'payment_information'            => $deposit->payment_information,
+                // QR dari log gateway (pola web) — supaya QRIS bisa dibuka ulang dari riwayat.
+                'qrcode_url'                     => data_get(data_get($deposit->payment_gateway_api_log, 'data'), 'qrcode_url'),
+                'qr_content'                     => data_get(data_get($deposit->payment_gateway_api_log, 'data'), 'qrContent')
+                    ?: data_get(data_get($deposit->payment_gateway_api_log, 'data'), 'qr_string')
+                    ?: data_get(data_get($deposit->payment_gateway_api_log, 'data'), 'qr_content'),
                 'created_at'                     => $deposit->created_at ? $deposit->created_at->format('Y-m-d H:i:s') : null,
                 'updated_at'                     => $deposit->updated_at ? $deposit->updated_at->format('Y-m-d H:i:s') : null,
             ],

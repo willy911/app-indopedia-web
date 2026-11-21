@@ -109,10 +109,29 @@ class DepositController extends Controller
             ], 404, [], JSON_PRETTY_PRINT);
         }
 
+        // PaymentMethod::minimum/maximum tersimpan dalam USD. Frontend mengirim
+        // `deposit.amount` = display / kurs, jadi batas validator memakai langsung
+        // nilai USD tersebut (bukan hasil konversi kurs). Sumber: User\DepositRequest.
+        $method = PaymentMethod::find((int) $request->input('payment_method.id'));
+        if (!$method) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Metode pembayaran tidak ditemukan.',
+                'errors'  => ['Metode pembayaran tidak ditemukan.'],
+            ], 400, [], JSON_PRETTY_PRINT);
+        }
+
+        $minimum = round((float) $method->minimum, 8);
+        $maximum = round((float) $method->maximum, 8);
+
         $validator = validator($request->all(), [
-            'payment_method.id'    => ['required', 'integer', 'exists:payment_methods,id'],
-            'deposit.amount'       => ['required', 'numeric', 'min:1'],
-            'deposit.phone_number' => ['nullable', 'string', 'max:30'],
+            'payment_method.id'      => ['required', 'integer', 'exists:payment_methods,id'],
+            'deposit.amount'         => ['required', 'numeric', 'min:' . $minimum, 'max:' . $maximum],
+            'deposit.display_amount' => ['nullable', 'numeric'],
+            'deposit.phone_number'   => ['nullable', 'string', 'max:30'],
+        ], [
+            'deposit.amount.min' => 'Nominal deposit minimal :min USD.',
+            'deposit.amount.max' => 'Nominal deposit maksimal :max USD.',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -149,7 +168,7 @@ class DepositController extends Controller
             'initial_balance'   => $user->balance,
             'final_balance'     => $user->balance,
         ];
-        $paymentMethod = PaymentMethod::find($credentials['payment_method_id']);
+        $paymentMethod = $method; // Sudah divalidasi di atas — hindari query ganda.
         $credentials['payment_method_name'] = $paymentMethod->name;
         if ($paymentMethod->admin_fee_configs->type === 'fixed') {
             $credentials['admin_fee'] = $paymentMethod->admin_fee_configs->value;
@@ -445,6 +464,72 @@ class DepositController extends Controller
                 'bonus'                          => round((float) $insertDeposit->bonus, 8),
                 'kurs_rate'                      => (float) $insertDeposit->kurs_rate,
                 'created_at'                     => $insertDeposit->created_at ? $insertDeposit->created_at->format('Y-m-d H:i:s') : null,
+            ],
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * POST /api/deposit/detail — detail satu deposit milik user.
+     * Semua nominal uang tetap dalam USD (base units); kurs_rate disertakan
+     * supaya aplikasi bisa menampilkan nilai lokal sendiri.
+     */
+    public function detail(Request $request): JsonResponse
+    {
+        $user = $this->resolveUser($request);
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Account not found.',
+                'errors'  => ['Account not found.'],
+            ], 404, [], JSON_PRETTY_PRINT);
+        }
+
+        $validator = validator($request->all(), [
+            'id' => ['required', 'integer'],
+        ], [
+            'id.required' => 'id deposit wajib diisi.',
+            'id.integer'  => 'id deposit harus berupa angka.',
+        ]);
+        if ($validator->fails()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Validasi gagal.',
+                'errors'  => $validator->errors()->all(),
+            ], 400, [], JSON_PRETTY_PRINT);
+        }
+
+        $deposit = Deposit::with('paymentMethod')
+            ->where('user_id', $user->id)
+            ->where('id', (int) $request->input('id'))
+            ->first();
+        if (!$deposit) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'Deposit tidak ditemukan.',
+                'errors'  => ['Deposit tidak ditemukan.'],
+            ], 404, [], JSON_PRETTY_PRINT);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data'   => [
+                'id'                             => $deposit->id,
+                'payment_method_name'            => $deposit->payment_method_name,
+                'status'                         => $deposit->status,
+                'amount'                         => round((float) $deposit->amount, 8),
+                'admin_fee'                      => round((float) $deposit->admin_fee, 8),
+                'bonus'                          => round((float) $deposit->bonus, 8),
+                'unique_code'                    => round((float) $deposit->unique_code, 8),
+                'total_payment'                  => round((float) $deposit->total_payment, 8),
+                'total_balance'                  => round((float) $deposit->total_balance, 8),
+                'kurs_rate'                      => (float) $deposit->kurs_rate,
+                'payment_gateway'                => $deposit->paymentMethod?->payment_gateway,
+                'payment_gateway_payment_id'     => $deposit->payment_gateway_payment_id,
+                'payment_gateway_payment_token'  => $deposit->payment_gateway_payment_token,
+                'checkout_url'                   => $deposit->payment_gateway_checkout_url,
+                'payment_information'            => $deposit->payment_information,
+                'created_at'                     => $deposit->created_at ? $deposit->created_at->format('Y-m-d H:i:s') : null,
+                'updated_at'                     => $deposit->updated_at ? $deposit->updated_at->format('Y-m-d H:i:s') : null,
             ],
         ], 200, [], JSON_PRETTY_PRINT);
     }

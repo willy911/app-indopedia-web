@@ -21,6 +21,7 @@ Route::post('order/detail', [\App\Http\Controllers\API\OrderListController::clas
 // jadi middleware App\Http\Middleware\API dikecualikan khusus route ini (throttle tetap jalan).
 Route::post('auth/login', [\App\Http\Controllers\API\AuthController::class, '__invoke'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:10,1');
 Route::post('me', [\App\Http\Controllers\API\MeController::class, '__invoke'])->middleware('api');
+Route::post('affiliate', [\App\Http\Controllers\API\AffiliateController::class, '__invoke'])->middleware('api');
 Route::post('payment-methods', [\App\Http\Controllers\API\PaymentMethodController::class, '__invoke'])->middleware('api');
 Route::post('deposits', [\App\Http\Controllers\API\DepositController::class, 'list'])->middleware('api');
 Route::post('deposits/create', [\App\Http\Controllers\API\DepositController::class, 'store'])->middleware('api');

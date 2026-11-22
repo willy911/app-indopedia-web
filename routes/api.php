@@ -41,3 +41,4 @@ Route::post('auth/reset-password', [\App\Http\Controllers\API\PasswordResetContr
 Route::post('monitoring', [\App\Http\Controllers\API\MonitoringController::class, 'index'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');
 Route::post('monitoring/services', [\App\Http\Controllers\API\MonitoringController::class, 'services'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');
 Route::post('news', [\App\Http\Controllers\API\NewsController::class, '__invoke'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');
+Route::post('news/popup', [\App\Http\Controllers\API\NewsController::class, 'popup'])->withoutMiddleware([\App\Http\Middleware\API::class])->middleware('throttle:30,1');

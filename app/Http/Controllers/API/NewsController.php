@@ -56,4 +56,36 @@ class NewsController extends Controller
             'data'   => $data,
         ], 200, [], JSON_PRETTY_PRINT);
     }
+
+    /**
+     * POST /api/news/popup — daftar berita popup untuk aplikasi mobile.
+     * Publik, tanpa kredensial api_key/secret_key. Mengambil maksimal 10 berita
+     * terbaru yang ditandai is_popup = '1' dan masih aktif (status = '1').
+     */
+    public function popup(Request $request): JsonResponse
+    {
+        $news = WebsiteNews::where('status', '1')
+            ->where('is_popup', '1')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        $data = $news->map(function (WebsiteNews $item) {
+            return [
+                'id'              => $item->id,
+                'title'           => $item->title,
+                'slug'            => $item->slug,
+                'content'         => $item->content,
+                'image'           => $item->banner ? rtrim(config('app.cdn_url'), '/') . '/website/' . $item->banner : null,
+                'created_at'      => $item->created_at ? $item->created_at->format('Y-m-d H:i:s') : null,
+                'is_public'       => (bool) $item->is_public,
+                'only_visible_on' => $item->only_visible_on,
+            ];
+        })->values();
+
+        return response()->json([
+            'status' => true,
+            'data'   => $data,
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
 }

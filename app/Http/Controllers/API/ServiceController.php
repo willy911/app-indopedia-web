@@ -53,6 +53,7 @@ class ServiceController extends Controller
                 'max' => $row->max,
                 'refill' => (bool) $row->is_refill_support,
                 'cancel' => (bool) $row->is_cancel_support,
+                'is_best_seller' => (bool) $row->is_best_seller,
                 'refill_days' => $row->refill_days,
                 'description' => $row->description,
                 'avg_quantity' => floor($row->avg_quantity),

@@ -59,11 +59,20 @@ class FcmPushService
         try {
             $accessToken = self::getAccessToken($credentials);
 
+            // Semua nilai data HARUS string. Judul & isi dikirim lewat data
+            // (bukan key `notification`) agar aplikasi yang menampilkan notifikasi
+            // sendiri, sehingga tidak terjadi notifikasi ganda.
+            $data = [
+                'type'  => 'balance_update',
+                'title' => 'Saldo bertambah',
+                'body'  => 'Saldo Indopedia Anda baru saja diperbarui.',
+            ];
+
             $payload = [
                 'message' => [
                     'topic'   => 'user_' . $userId,
-                    'data'    => ['type' => 'balance_update'],
-                    'android' => ['data' => ['type' => 'balance_update']],
+                    'data'    => $data,
+                    'android' => ['data' => $data],
                 ],
             ];
 
@@ -72,12 +81,15 @@ class FcmPushService
                 ->post("https://fcm.googleapis.com/v1/projects/{$credentials['project_id']}/messages:send", $payload);
 
             if (!$response->successful()) {
-                Log::warning('FCM balance push gagal: ' . $response->body());
+                Log::warning('FCM balance_update gagal', [
+                    'topic' => 'user_' . $userId,
+                    'ok'    => false,
+                    'body'  => substr($response->body(), 0, 500),
+                ]);
             } else {
-                Log::info('FCM balance push terkirim', [
-                    'user_id' => $userId,
-                    'topic'   => 'user_' . $userId,
-                    'body'    => substr($response->body(), 0, 500),
+                Log::info('FCM balance_update dikirim', [
+                    'topic' => 'user_' . $userId,
+                    'ok'    => $response->successful(),
                 ]);
             }
 

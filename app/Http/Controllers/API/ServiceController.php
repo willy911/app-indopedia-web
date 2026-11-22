@@ -18,6 +18,7 @@ use App\Models\Order\Order;
 use App\Models\Service\Service;
 use App\Models\User\User;
 use Carbon\CarbonInterval;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Locale;
@@ -66,6 +67,42 @@ class ServiceController extends Controller
         return response()->json([
             'status' => true,
             'data'   => $services,
+        ], 200, [], JSON_PRETTY_PRINT);
+    }
+
+    /**
+     * Best seller berdasarkan pesanan riil bulan ini (bukan flag manual is_best_seller).
+     *
+     * Status yang dihitung sebagai pesanan berhasil/berjalan:
+     * completed, processing, in_progress, partial.
+     * pending, canceled, dan error sengaja dikecualikan.
+     */
+    public function bestSellers(): JsonResponse
+    {
+        // leftJoin dipakai agar pesanan dengan layanan yang sudah dihapus tetap
+        // terhitung; service_name bersifat opsional (null bila tidak ditemukan).
+        // Satu query saja, tidak ada N+1.
+        $rows = Order::query()
+            ->selectRaw('orders.service_id, services.name as service_name, COUNT(*) as orders_count')
+            ->leftJoin('services', 'services.id', '=', 'orders.service_id')
+            ->whereBetween('orders.created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereIn('orders.status', ['completed', 'processing', 'in_progress', 'partial'])
+            ->groupBy('orders.service_id', 'services.name')
+            ->orderByDesc('orders_count')
+            ->limit(10)
+            ->get();
+
+        $data = $rows->map(function ($row) {
+            return [
+                'service_id'   => (int) $row->service_id,
+                'orders_count' => (int) $row->orders_count,
+                'service_name' => $row->service_name,
+            ];
+        })->values()->all();
+
+        return response()->json([
+            'status' => true,
+            'data'   => $data,
         ], 200, [], JSON_PRETTY_PRINT);
     }
 }

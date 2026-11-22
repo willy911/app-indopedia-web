@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('account/profile', \App\Http\Controllers\API\ProfileController::class)->middleware('api');
 Route::post('services', \App\Http\Controllers\API\ServiceController::class)->middleware('api');
+// Best seller dari pesanan riil bulan ini (kredensial api_key + secret_key, sama seperti /services).
+Route::post('services/best-sellers', [\App\Http\Controllers\API\ServiceController::class, 'bestSellers'])->middleware('api');
 Route::post('order/create', [\App\Http\Controllers\API\OrderController::class, 'create'])->middleware('api');
 Route::post('order/status', [\App\Http\Controllers\API\OrderController::class, 'status'])->middleware('api');
 Route::post('order/refill/create', [\App\Http\Controllers\API\OrderRefillController::class, 'create'])->middleware('api');
